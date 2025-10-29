@@ -6,13 +6,11 @@ const canvas = document.getElementById("myCanvas");
 const ctx = canvas.getContext("2d");
 const map = new Map(canvas.width, canvas.height);
 
-// Create tanks first
 const redTank = new Tank(50, 50, 40, 5, "red", canvas.width, canvas.height);
 const blueTank = new Tank(700, 500, 40, 5, "blue", canvas.width, canvas.height);
 
-// Create bullet controllers with enemy targets
-const redBulletController = new BulletController(canvas, blueTank); // Red shoots blue
-const blueBulletController = new BulletController(canvas, redTank); // Blue shoots red
+const redBulletController = new BulletController(canvas, blueTank);
+const blueBulletController = new BulletController(canvas, redTank);
 
 const keys = {};
 
@@ -25,27 +23,47 @@ window.addEventListener("keyup", (e) => {
 });
 
 function gameLoop() {
-  // Update tanks (for cooldowns)
   redTank.update();
   blueTank.update();
 
-  // Red tank movement
-  if (keys["ArrowUp"]) redTank.move("up", blueTank);
-  if (keys["ArrowDown"]) redTank.move("down", blueTank);
-  if (keys["ArrowLeft"]) redTank.move("left", blueTank);
-  if (keys["ArrowRight"]) redTank.move("right", blueTank);
+  let forward = 0;
+  let rotate = 0;
 
-  // Blue tank movement
-  if (keys["w"] || keys["W"]) blueTank.move("up", redTank);
-  if (keys["s"] || keys["S"]) blueTank.move("down", redTank);
-  if (keys["a"] || keys["A"]) blueTank.move("left", redTank);
-  if (keys["d"] || keys["D"]) blueTank.move("right", redTank);
+  if (keys["ArrowUp"]) forward = 1;
+  if (keys["ArrowDown"]) forward = -1;
+  if (keys["ArrowLeft"]) rotate = -1;
+  if (keys["ArrowRight"]) rotate = 1;
 
-  // Shooting - Space for red, Shift for blue
+  redTank.move(forward, rotate);
+
+  let forwardB = 0;
+  let rotateB = 0;
+
+  if (keys["w"] || keys["W"]) forwardB = 1;
+  if (keys["s"] || keys["S"]) forwardB = -1;
+  if (keys["a"] || keys["A"]) rotateB = -1;
+  if (keys["d"] || keys["D"]) rotateB = 1;
+
+  blueTank.move(forwardB, rotateB);
+
+  // Check for tank-to-tank collision and respond
+  if (blueTank.isCollidingWith(redTank)) {
+    // If tanks are colliding, revert to their previous positions
+    blueTank.x = blueTank.prevX || blueTank.x;
+    blueTank.y = blueTank.prevY || blueTank.y;
+    redTank.x = redTank.prevX || redTank.x;
+    redTank.y = redTank.prevY || redTank.y;
+  }
+
+  // Store current positions as previous positions for next frame
+  blueTank.prevX = blueTank.x;
+  blueTank.prevY = blueTank.y;
+  redTank.prevX = redTank.x;
+  redTank.prevY = redTank.y;
+
   if (keys[" "]) redTank.shoot(redBulletController);
   if (keys["q"]) blueTank.shoot(blueBulletController);
 
-  // Clear and draw everything
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   map.draw(ctx);
   redTank.draw(ctx);
